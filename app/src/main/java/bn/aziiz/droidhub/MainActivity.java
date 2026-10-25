@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -12,6 +13,9 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.EditText;
+import android.widget.Toast;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 public class MainActivity extends Activity {
@@ -74,7 +78,79 @@ public class MainActivity extends Activity {
         stop.setBackground(bg(Color.rgb(29,38,51),18));
         root.addView(stop,new LinearLayout.LayoutParams(-1,dp(54)));
 
-        TextView footer = text("v0.1 • Android Auto media prototype",13,Color.rgb(116,128,145),false);
+        LinearLayout ytCard = new LinearLayout(this);
+        ytCard.setOrientation(LinearLayout.VERTICAL);
+        ytCard.setPadding(dp(20),dp(20),dp(20),dp(20));
+        ytCard.setBackground(bg(Color.rgb(18,25,35),20));
+
+        TextView ytLabel = text("YOUTUBE",12,Color.rgb(255,100,100),true);
+        ytCard.addView(ytLabel);
+
+        TextView ytTitle = text("YouTube",24,Color.WHITE,true);
+        LinearLayout.LayoutParams yttp = new LinearLayout.LayoutParams(-1,-2);
+        yttp.setMargins(0,dp(8),0,dp(5));
+        ytCard.addView(ytTitle,yttp);
+
+        ytCard.addView(text(
+            "Search YouTube or paste a video link. YouTube opens on your phone using the normal YouTube experience.",
+            14,Color.rgb(190,199,211),false));
+
+        EditText ytInput = new EditText(this);
+        ytInput.setHint("Search or paste YouTube link");
+        ytInput.setHintTextColor(Color.rgb(115,127,143));
+        ytInput.setTextColor(Color.WHITE);
+        ytInput.setSingleLine(true);
+        ytInput.setPadding(dp(15),0,dp(15),0);
+        ytInput.setBackground(bg(Color.rgb(29,38,51),14));
+        LinearLayout.LayoutParams ytip = new LinearLayout.LayoutParams(-1,dp(52));
+        ytip.setMargins(0,dp(16),0,dp(10));
+        ytCard.addView(ytInput,ytip);
+
+        Button ytSearch = new Button(this);
+        ytSearch.setText("Search YouTube");
+        ytSearch.setAllCaps(false);
+        ytSearch.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+        ytSearch.setTextColor(Color.WHITE);
+        ytSearch.setBackground(bg(Color.rgb(190,35,45),14));
+        ytCard.addView(ytSearch,new LinearLayout.LayoutParams(-1,dp(52)));
+
+        Button ytOpen = new Button(this);
+        ytOpen.setText("Open YouTube");
+        ytOpen.setAllCaps(false);
+        ytOpen.setTextColor(Color.WHITE);
+        ytOpen.setBackground(bg(Color.rgb(29,38,51),14));
+        LinearLayout.LayoutParams ytop = new LinearLayout.LayoutParams(-1,dp(50));
+        ytop.setMargins(0,dp(10),0,0);
+        ytCard.addView(ytOpen,ytop);
+
+        LinearLayout.LayoutParams ytcardp = new LinearLayout.LayoutParams(-1,-2);
+        ytcardp.setMargins(0,dp(24),0,0);
+        root.addView(ytCard,ytcardp);
+
+        ytOpen.setOnClickListener(v -> {
+            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/"));
+            startActivity(i);
+        });
+
+        ytSearch.setOnClickListener(v -> {
+            String q = ytInput.getText().toString().trim();
+            if (q.isEmpty()) {
+                Toast.makeText(this,"Enter a search or YouTube link",Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            Uri target;
+            if (q.startsWith("http://") || q.startsWith("https://")) {
+                target = Uri.parse(q);
+            } else {
+                target = Uri.parse("https://www.youtube.com/results?search_query=" +
+                    Uri.encode(q));
+            }
+
+            startActivity(new Intent(Intent.ACTION_VIEW,target));
+        });
+
+        TextView footer = text("v0.2 • DroidHub Media Hub",13,Color.rgb(116,128,145),false);
         LinearLayout.LayoutParams fp = new LinearLayout.LayoutParams(-1,-2);
         fp.setMargins(0,dp(28),0,0); footer.setGravity(Gravity.CENTER);
         root.addView(footer,fp);
@@ -89,6 +165,9 @@ public class MainActivity extends Activity {
             i.setAction(DroidHubMediaService.ACTION_PAUSE);
             startService(i);
         });
-        setContentView(root);
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
+        scroll.addView(root);
+        setContentView(scroll);
     }
 }
