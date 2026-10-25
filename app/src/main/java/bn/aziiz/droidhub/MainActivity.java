@@ -17,6 +17,10 @@ import android.widget.EditText;
 import android.widget.Toast;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.webkit.WebChromeClient;
+import android.webkit.WebSettings;
 
 public class MainActivity extends Activity {
     private int dp(float v) { return (int)(v * getResources().getDisplayMetrics().density + .5f); }
@@ -127,10 +131,9 @@ public class MainActivity extends Activity {
         ytcardp.setMargins(0,dp(24),0,0);
         root.addView(ytCard,ytcardp);
 
-        ytOpen.setOnClickListener(v -> {
-            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/"));
-            startActivity(i);
-        });
+        ytOpen.setOnClickListener(v ->
+            openBrowser("https://www.youtube.com/")
+        );
 
         ytSearch.setOnClickListener(v -> {
             String q = ytInput.getText().toString().trim();
@@ -147,10 +150,10 @@ public class MainActivity extends Activity {
                     Uri.encode(q));
             }
 
-            startActivity(new Intent(Intent.ACTION_VIEW,target));
+            openBrowser(target.toString());
         });
 
-        TextView footer = text("v0.2 • DroidHub Media Hub",13,Color.rgb(116,128,145),false);
+        TextView footer = text("v0.3 • DroidHub Browser + Media",13,Color.rgb(116,128,145),false);
         LinearLayout.LayoutParams fp = new LinearLayout.LayoutParams(-1,-2);
         fp.setMargins(0,dp(28),0,0); footer.setGravity(Gravity.CENTER);
         root.addView(footer,fp);
@@ -170,4 +173,150 @@ public class MainActivity extends Activity {
         scroll.addView(root);
         setContentView(scroll);
     }
+
+    private void openBrowser(String initialUrl) {
+        final Activity activity = this;
+
+        LinearLayout page = new LinearLayout(this);
+        page.setOrientation(LinearLayout.VERTICAL);
+        page.setBackgroundColor(Color.rgb(8,11,16));
+
+        LinearLayout toolbar = new LinearLayout(this);
+        toolbar.setOrientation(LinearLayout.HORIZONTAL);
+        toolbar.setGravity(Gravity.CENTER_VERTICAL);
+        toolbar.setPadding(dp(8),dp(8),dp(8),dp(8));
+        toolbar.setBackgroundColor(Color.rgb(18,25,35));
+
+        Button back = new Button(this);
+        back.setText("‹");
+        back.setTextSize(24);
+        back.setTextColor(Color.WHITE);
+        back.setAllCaps(false);
+        back.setBackground(bg(Color.rgb(29,38,51),12));
+
+        Button forward = new Button(this);
+        forward.setText("›");
+        forward.setTextSize(24);
+        forward.setTextColor(Color.WHITE);
+        forward.setAllCaps(false);
+        forward.setBackground(bg(Color.rgb(29,38,51),12));
+
+        Button home = new Button(this);
+        home.setText("⌂");
+        home.setTextSize(20);
+        home.setTextColor(Color.WHITE);
+        home.setAllCaps(false);
+        home.setBackground(bg(Color.rgb(29,38,51),12));
+
+        EditText address = new EditText(this);
+        address.setSingleLine(true);
+        address.setTextColor(Color.WHITE);
+        address.setHintTextColor(Color.rgb(115,127,143));
+        address.setHint("Search or enter address");
+        address.setText(initialUrl);
+        address.setPadding(dp(14),0,dp(14),0);
+        address.setBackground(bg(Color.rgb(29,38,51),12));
+
+        Button go = new Button(this);
+        go.setText("GO");
+        go.setTextColor(Color.rgb(8,11,16));
+        go.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+        go.setAllCaps(false);
+        go.setBackground(bg(Color.rgb(111,231,216),12));
+
+        LinearLayout.LayoutParams small =
+            new LinearLayout.LayoutParams(dp(52),dp(48));
+        small.setMargins(dp(3),0,dp(3),0);
+
+        toolbar.addView(back,small);
+        toolbar.addView(forward,small);
+        toolbar.addView(home,small);
+
+        LinearLayout.LayoutParams addressParams =
+            new LinearLayout.LayoutParams(0,dp(48),1);
+        addressParams.setMargins(dp(5),0,dp(5),0);
+        toolbar.addView(address,addressParams);
+
+        toolbar.addView(go,
+            new LinearLayout.LayoutParams(dp(58),dp(48)));
+
+        WebView web = new WebView(this);
+        WebSettings settings = web.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setMediaPlaybackRequiresUserGesture(false);
+        settings.setLoadWithOverviewMode(true);
+        settings.setUseWideViewPort(true);
+        settings.setBuiltInZoomControls(true);
+        settings.setDisplayZoomControls(false);
+
+        web.setWebChromeClient(new WebChromeClient());
+
+        web.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view,String url) {
+                super.onPageFinished(view,url);
+                address.setText(url);
+            }
+        });
+
+        back.setOnClickListener(v -> {
+            if (web.canGoBack()) web.goBack();
+            else showMainScreen();
+        });
+
+        forward.setOnClickListener(v -> {
+            if (web.canGoForward()) web.goForward();
+        });
+
+        home.setOnClickListener(v ->
+            web.loadUrl("https://www.youtube.com/")
+        );
+
+        View.OnClickListener navigate = v -> {
+            String q = address.getText().toString().trim();
+
+            if (q.isEmpty()) return;
+
+            if (!q.startsWith("http://") &&
+                !q.startsWith("https://")) {
+
+                if (q.contains(".") && !q.contains(" ")) {
+                    q = "https://" + q;
+                } else {
+                    q = "https://www.google.com/search?q=" +
+                        Uri.encode(q);
+                }
+            }
+
+            web.loadUrl(q);
+        };
+
+        go.setOnClickListener(navigate);
+
+        address.setOnEditorActionListener((v,action,event) -> {
+            navigate.onClick(v);
+            return true;
+        });
+
+        page.addView(toolbar,
+            new LinearLayout.LayoutParams(-1,dp(64)));
+
+        page.addView(web,
+            new LinearLayout.LayoutParams(-1,0,1));
+
+        setContentView(page);
+
+        web.loadUrl(initialUrl);
+    }
+
+    private void showMainScreen() {
+        recreate();
+    }
+
+    @Override
+    public void onBackPressed() {
+        showMainScreen();
+    }
+
 }
